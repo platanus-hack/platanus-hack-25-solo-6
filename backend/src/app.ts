@@ -9,9 +9,16 @@ import dotenv from "dotenv";
 
 // routes
 import { healthRoutes } from "./api/health/health.routes.js";
+import { felipeRoutes } from "./api/felipe/felipe.routes.js";
+
+// services
+import { initializeLLMServices } from "./services/llm/llm.init.js";
 
 // load env
 dotenv.config();
+
+// Initialize services
+initializeLLMServices();
 
 const app = new Hono();
 
@@ -33,5 +40,6 @@ app.use("*", prettyJSON());
 
 // Routes
 app.route("/health", healthRoutes);
+app.route("/felipe", felipeRoutes);
 
 export default app;

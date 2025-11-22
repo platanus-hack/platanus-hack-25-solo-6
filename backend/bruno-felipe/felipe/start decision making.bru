@@ -1,0 +1,23 @@
+meta {
+  name: start decision making
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{url}}/felipe/start-decision-making
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "message": "hola",
+    "email": "cristian.valdivia@alumnos.usm.cl"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
