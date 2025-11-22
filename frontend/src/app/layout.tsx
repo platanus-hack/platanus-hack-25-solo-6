@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 // context - auth provider
-import AuthProvider from "@/src/context/AuthProvider";
+import AuthProvider from "@/context/AuthProvider";
 
 // fonts
 import { Geist, Geist_Mono } from "next/font/google";

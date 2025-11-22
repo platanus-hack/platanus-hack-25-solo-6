@@ -30,7 +30,11 @@ if (process.env["NODE_ENV"] !== "test") {
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://platanus-hack-25-solo-6.vercel.app",
+    ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "x-user-email"],
     credentials: true,
