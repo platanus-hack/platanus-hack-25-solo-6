@@ -9,12 +9,18 @@ import { useAuth } from "@/hooks/useAuth";
 // services
 import { felipeService, ApiError, type Consequence } from "@/services";
 
+// components
+import { DecisionTree } from "@/components";
+
+type ViewMode = "list" | "tree";
+
 export default function Dashboard() {
   const { session, signOut } = useAuth();
   const [decision, setDecision] = useState("");
   const [consequences, setConsequences] = useState<Consequence[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("tree");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,9 +95,11 @@ export default function Dashboard() {
 
       {/* Main content */}
       <main className="flex-1 p-6">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto w-full"
+          style={{ maxWidth: viewMode === "tree" && consequences.length > 0 ? "none" : "64rem" }}
+        >
           {/* Input form */}
-          <form onSubmit={handleSubmit} className="mb-8">
+          <form onSubmit={handleSubmit} className="mb-8 mx-auto" style={{ maxWidth: "64rem" }}>
             <label
               htmlFor="decision"
               className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
@@ -119,63 +127,117 @@ export default function Dashboard() {
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
           </form>
 
-          {/* Consequences list */}
+          {/* Consequences visualization */}
           {consequences.length > 0 && (
             <div>
-              <h2 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">
-                Posibles consecuencias de tu decisión
-              </h2>
-              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                Ordenadas por probabilidad de ocurrencia. Las probabilidades son
-                independientes.
-              </p>
-              <div className="space-y-4">
-                {consequences.map((consequence, index) => (
-                  <div
-                    key={index}
-                    className={`rounded-lg border p-6 shadow-sm ${
-                      isHighImpact(consequence.probabilidad)
-                        ? "border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-950"
-                        : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+              {/* Header with view toggle */}
+              <div className="mb-6 mx-auto flex items-center justify-between" style={{ maxWidth: "64rem" }}>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Posibles consecuencias de tu decisión
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {viewMode === "list"
+                      ? "Ordenadas por probabilidad de ocurrencia."
+                      : "Haz click en un nodo para ver sus detalles."}{" "}
+                    Las probabilidades son independientes.
+                  </p>
+                </div>
+
+                {/* View mode toggle */}
+                <div className="flex rounded-lg border border-gray-300 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">
+                  <button
+                    onClick={() => setViewMode("tree")}
+                    className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                      viewMode === "tree"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                     }`}
                   >
-                    <div className="mb-2 flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {consequence.nombre}
-                          </h3>
-                          {isHighImpact(consequence.probabilidad) && (
-                            <span className="rounded-full bg-purple-600 px-2 py-0.5 text-xs font-medium text-white">
-                              Alto impacto
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <span
-                        className={`rounded-full px-3 py-1 text-sm font-medium ${getProbabilityColor(
-                          consequence.probabilidad
-                        )}`}
-                      >
-                        {consequence.probabilidad}%
-                      </span>
-                    </div>
-                    <p className="mb-4 text-gray-600 dark:text-gray-400">
-                      {consequence.descripcion}
-                    </p>
-                    <div>
-                      <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                        Impactos potenciales:
-                      </p>
-                      <ul className="list-inside list-disc space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                        {consequence.impactos.map((impacto, i) => (
-                          <li key={i}>{impacto}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                ))}
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                      />
+                    </svg>
+                    Árbol
+                  </button>
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                      viewMode === "list"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
+                    </svg>
+                    Lista
+                  </button>
+                </div>
               </div>
+
+              {/* Tree view */}
+              {viewMode === "tree" && <DecisionTree decision={decision} consequences={consequences} />}
+
+              {/* List view */}
+              {viewMode === "list" && (
+                <div className="space-y-4">
+                  {consequences.map((consequence, index) => (
+                    <div
+                      key={index}
+                      className={`rounded-lg border p-6 shadow-sm ${
+                        isHighImpact(consequence.probabilidad)
+                          ? "border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-950"
+                          : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {consequence.nombre}
+                            </h3>
+                            {isHighImpact(consequence.probabilidad) && (
+                              <span className="rounded-full bg-purple-600 px-2 py-0.5 text-xs font-medium text-white">
+                                Alto impacto
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span
+                          className={`rounded-full px-3 py-1 text-sm font-medium ${getProbabilityColor(
+                            consequence.probabilidad
+                          )}`}
+                        >
+                          {consequence.probabilidad}%
+                        </span>
+                      </div>
+                      <p className="mb-4 text-gray-600 dark:text-gray-400">
+                        {consequence.descripcion}
+                      </p>
+                      <div>
+                        <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                          Impactos potenciales:
+                        </p>
+                        <ul className="list-inside list-disc space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                          {consequence.impactos.map((impacto, i) => (
+                            <li key={i}>{impacto}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
