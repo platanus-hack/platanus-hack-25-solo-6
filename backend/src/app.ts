@@ -8,7 +8,7 @@ import { prettyJSON } from "hono/pretty-json";
 import dotenv from "dotenv";
 
 // routes
-import { healthRoutes } from "./api/health/health.routes";
+import { healthRoutes } from "./api/health/health.routes.js";
 
 // load env
 dotenv.config();
