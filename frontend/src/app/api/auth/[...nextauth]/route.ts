@@ -49,7 +49,7 @@ const handler = NextAuth({
     },
 
     async redirect({ baseUrl }: { baseUrl: string }) {
-      return `${baseUrl}/chat`;
+      return `${baseUrl}/dashboard`;
     },
   },
 });
