@@ -211,6 +211,11 @@ export default function Dashboard() {
                                 Alto impacto
                               </span>
                             )}
+                            {consequence.polymarketInfluenced && (
+                              <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white" title="Influenciado por datos de Polymarket">
+                                📊 Polymarket
+                              </span>
+                            )}
                           </div>
                         </div>
                         <span
@@ -224,7 +229,7 @@ export default function Dashboard() {
                       <p className="mb-4 text-gray-600 dark:text-gray-400">
                         {consequence.descripcion}
                       </p>
-                      <div>
+                      <div className="mb-4">
                         <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
                           Impactos potenciales:
                         </p>
@@ -234,6 +239,38 @@ export default function Dashboard() {
                           ))}
                         </ul>
                       </div>
+
+                      {/* Polymarket markets for list view */}
+                      {consequence.relatedMarkets && consequence.relatedMarkets.length > 0 && (
+                        <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                          <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            📊 Mercados relacionados en Polymarket ({consequence.relatedMarkets.length}):
+                          </p>
+                          <div className="space-y-2">
+                            {consequence.relatedMarkets.slice(0, 3).map((market) => (
+                              <div
+                                key={market.id}
+                                className="rounded border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800"
+                              >
+                                <p className="text-xs text-gray-900 dark:text-white">
+                                  {market.question}
+                                </p>
+                                <div className="mt-1 flex items-center gap-3 text-[10px] text-gray-600 dark:text-gray-400">
+                                  <span>Prob: <strong>{market.probability}%</strong></span>
+                                  <a
+                                    href={market.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                                  >
+                                    Ver →
+                                  </a>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

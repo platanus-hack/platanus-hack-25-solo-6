@@ -42,7 +42,7 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
       type: "consequence",
       position: { x: 0, y: 0 },
       data: {
-        label: decision,
+        label: "Decisión",
         probabilidad: 100,
         isRoot: true,
       },
@@ -60,6 +60,7 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
         label: consequence.nombre,
         probabilidad: consequence.probabilidad,
         isRoot: false,
+        hasPolymarketData: consequence.relatedMarkets && consequence.relatedMarkets.length > 0,
       },
     }));
 

@@ -16,6 +16,13 @@ export default function DetailPanel({ consequence, onClose }: DetailPanelProps) 
   };
 
   const isHighImpact = consequence.probabilidad <= 10;
+  const hasPolymarketData = consequence.relatedMarkets && consequence.relatedMarkets.length > 0;
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+    return `$${value.toFixed(0)}`;
+  };
 
   return (
     <div className="flex h-full flex-col border-l border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
@@ -30,6 +37,11 @@ export default function DetailPanel({ consequence, onClose }: DetailPanelProps) 
               {isHighImpact && (
                 <span className="rounded-full bg-purple-600 px-2 py-0.5 text-xs font-medium text-white">
                   Alto impacto
+                </span>
+              )}
+              {consequence.polymarketInfluenced && (
+                <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white" title="Influenciado por datos de Polymarket">
+                  📊 Polymarket
                 </span>
               )}
             </div>
@@ -55,7 +67,7 @@ export default function DetailPanel({ consequence, onClose }: DetailPanelProps) 
           <p className="text-sm text-gray-600 dark:text-gray-400">{consequence.descripcion}</p>
         </div>
 
-        <div>
+        <div className="mb-6">
           <h4 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Impactos potenciales</h4>
           <ul className="space-y-2">
             {consequence.impactos.map((impacto, index) => (
@@ -70,6 +82,80 @@ export default function DetailPanel({ consequence, onClose }: DetailPanelProps) 
             ))}
           </ul>
         </div>
+
+        {/* Polymarket Markets */}
+        {hasPolymarketData && (
+          <div className="mb-6">
+            <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
+              <span>📊 Mercados de Polymarket</span>
+              <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
+                ({consequence.relatedMarkets.length})
+              </span>
+            </h4>
+            <div className="space-y-3">
+              {consequence.relatedMarkets.map((market) => (
+                <div
+                  key={market.id}
+                  className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800"
+                >
+                  <div className="mb-2">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {market.question}
+                    </p>
+                  </div>
+                  <div className="mb-2 flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Probabilidad:</span>
+                      <span className={`font-bold ${getProbabilityColor(market.probability)}`}>
+                        {market.probability}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Volumen:</span>
+                      <span>{formatCurrency(market.volume)}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={market.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    Ver en Polymarket
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Suggested Polymarket Queries */}
+        {consequence.polymarketQueries && consequence.polymarketQueries.length > 0 && (
+          <div>
+            <h4 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">
+              Búsquedas sugeridas en Polymarket
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {consequence.polymarketQueries.map((query, index) => (
+                <a
+                  key={index}
+                  href={`https://polymarket.com/search?q=${encodeURIComponent(query)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  {query}
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

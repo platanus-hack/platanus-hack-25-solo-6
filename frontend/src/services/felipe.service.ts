@@ -1,10 +1,26 @@
 import { apiFetch } from "./api.service";
 
+export interface PolymarketMarket {
+  id: string;
+  question: string;
+  description?: string;
+  probability: number;
+  volume: number;
+  liquidity: number;
+  endDate: string;
+  url: string;
+  active: boolean;
+  outcomes?: string[];
+}
+
 export interface Consequence {
   nombre: string;
   descripcion: string;
   probabilidad: number;
   impactos: string[];
+  polymarketQueries: string[];
+  polymarketInfluenced: boolean;
+  relatedMarkets: PolymarketMarket[];
 }
 
 export interface StartDecisionMakingRequest {
