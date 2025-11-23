@@ -8,12 +8,12 @@ import "./globals.css";
 import AuthProvider from "@/context/AuthProvider";
 
 // fonts
-import { Oxanium } from "next/font/google";
+import { Tomorrow } from "next/font/google";
 
-const oxanium = Oxanium({
-  variable: "--font-oxanium",
+const tomorrow = Tomorrow({
+  variable: "--font-tomorrow",
   subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700", "800"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${oxanium.className} antialiased`}
+        className={`${tomorrow.className} antialiased`}
       >
         <AuthProvider>{children}</AuthProvider>
       </body>

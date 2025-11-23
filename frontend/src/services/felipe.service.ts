@@ -13,6 +13,14 @@ export interface PolymarketMarket {
   outcomes?: string[];
 }
 
+export interface TavilyResult {
+  title: string;
+  url: string;
+  content: string;
+  score: number;
+  publishedDate?: string;
+}
+
 export interface Consequence {
   nombre: string;
   descripcion: string;
@@ -29,8 +37,10 @@ export interface StartDecisionMakingRequest {
 }
 
 export interface StartDecisionMakingResponse {
+  inputType?: "decision" | "question";
   consequences: Consequence[];
   decisionId?: string;
+  tavilyResults?: TavilyResult[];
 }
 
 export interface Decision {
@@ -59,7 +69,12 @@ export const felipeService = {
    */
   async startDecisionMaking(
     request: StartDecisionMakingRequest
-  ): Promise<{ consequences: Consequence[]; decisionId?: string }> {
+  ): Promise<{
+    inputType?: "decision" | "question";
+    consequences: Consequence[];
+    decisionId?: string;
+    tavilyResults?: TavilyResult[];
+  }> {
     const response = await apiFetch<StartDecisionMakingResponse>(
       "/felipe/start-decision-making",
       {
@@ -74,8 +89,10 @@ export const felipeService = {
     );
 
     return {
+      inputType: response.inputType,
       consequences: sortedConsequences,
       decisionId: response.decisionId,
+      tavilyResults: response.tavilyResults,
     };
   },
 

@@ -10,7 +10,7 @@ import { polymarketService } from "../../services/polymarket/index.js";
 import type { PolymarketMarket } from "../../services/polymarket/index.js";
 
 // tavily service
-import { tavilyService } from "../../services/tavily/index.js";
+import { tavilyService, type TavilySearchResult } from "../../services/tavily/index.js";
 
 // firestore service
 import { decisionFirestoreService } from "../../services/firestore/index.js";
@@ -121,17 +121,30 @@ export const felipeController = {
     const PROVIDER = PROVIDERS.CEREBRAS;
     const MODEL = MODELS.GPT_OSS;
 
-    // Step 1a: Generate search keywords for Polymarket (inglés)
-    console.log("📝 Generating Polymarket search keywords...");
-    const polymarketKeywordsPrompt = `
-      Analiza esta decisión del usuario y genera 5-8 keywords o queries EN INGLÉS para buscar mercados de predicción relevantes en Polymarket.
+    // Step 1a: Get trending Polymarket markets
+    console.log("🔥 Fetching trending Polymarket markets...");
+    let trendingMarkets: PolymarketMarket[] = [];
+    try {
+      trendingMarkets = await polymarketService.getTrendingMarkets(25);
+      console.log(`✅ Got ${trendingMarkets.length} trending markets`);
+    } catch (error) {
+      console.error("⚠️ Error fetching trending markets:", error);
+    }
 
-      IMPORTANTE: Las keywords DEBEN ser en INGLÉS (no español), relacionadas con eventos futuros que podrían afectar la decisión.
+    // Step 1b: Generate specific search keywords for this decision
+    console.log("📝 Generating specific Polymarket keywords for this decision...");
+    const polymarketKeywordsPrompt = `
+      Analiza esta decisión y genera 5-8 keywords/phrases EN INGLÉS muy específicos para buscar mercados de predicción relevantes en Polymarket.
+
+      IMPORTANTE:
+      - Las keywords DEBEN ser en INGLÉS
+      - Deben ser MUY específicas a esta decisión
+      - Piensa en eventos futuros que impactarían directamente esta decisión
 
       Ejemplos:
-      - Decisión: "Voy a invertir en Bitcoin" → ["bitcoin price 2025", "crypto regulation", "btc 100k", "federal reserve rates"]
-      - Decisión: "Voy a renunciar para emprender" → ["startup success rate", "economic recession", "tech jobs market", "venture capital"]
-      - Decisión: "Me voy a mudar a Chile" → ["chile economy 2025", "latin america housing", "santiago real estate", "chile politics"]
+      - Decisión: "Voy a invertir en Bitcoin" → ["bitcoin price 2025", "crypto regulation SEC", "btc 100k", "federal reserve interest rates 2025"]
+      - Decisión: "Voy a lanzar empresa de IA" → ["AI bubble burst", "AI startup funding", "OpenAI valuation", "AI regulation", "tech layoffs 2025"]
+      - Decisión: "Me voy a mudar a Chile" → ["chile economy 2025", "latin america recession", "santiago housing market", "chile political stability"]
 
       Decisión del usuario: ${message}
 
@@ -141,7 +154,63 @@ export const felipeController = {
       }
     `;
 
-    // Step 1b: Generate search queries for Tavily (español)
+    const polymarketKeywordsResponse = await llmServiceManager.generateText(
+      {
+        prompt: polymarketKeywordsPrompt,
+        temperature: 0.7,
+        model: MODEL,
+      },
+      PROVIDER
+    );
+
+    // Parse keywords
+    console.log("📥 Parsing specific keywords...");
+    let specificKeywords: string[] = [];
+    try {
+      const keywordsJson = cleanAndParseJSON(polymarketKeywordsResponse.content);
+      specificKeywords = keywordsJson.keywords || [];
+      console.log(`✅ Successfully parsed ${specificKeywords.length} specific keywords:`, specificKeywords);
+    } catch (error) {
+      console.error("⚠️ Failed to parse keywords:", error);
+      specificKeywords = [];
+    }
+
+    // Step 1c: Search for specific markets related to this decision
+    let specificMarkets: PolymarketMarket[] = [];
+    if (specificKeywords.length > 0) {
+      console.log("🔍 Searching for decision-specific markets...");
+      try {
+        const markets = await polymarketService.searchMultipleKeywords(specificKeywords);
+        specificMarkets = polymarketService.filterByRelevance(markets, 500);
+        console.log(`✅ Found ${specificMarkets.length} decision-specific markets`);
+      } catch (error) {
+        console.error("⚠️ Error searching specific markets:", error);
+      }
+    }
+
+    // Step 1d: Combine trending + specific markets (remove duplicates)
+    const allMarkets: PolymarketMarket[] = [];
+    const seenIds = new Set<string>();
+
+    // Add trending markets first
+    for (const market of trendingMarkets) {
+      if (!seenIds.has(market.id)) {
+        allMarkets.push(market);
+        seenIds.add(market.id);
+      }
+    }
+
+    // Add specific markets
+    for (const market of specificMarkets) {
+      if (!seenIds.has(market.id)) {
+        allMarkets.push(market);
+        seenIds.add(market.id);
+      }
+    }
+
+    console.log(`📊 Combined market pool: ${trendingMarkets.length} trending + ${specificMarkets.length} specific = ${allMarkets.length} total unique markets`);
+
+    // Step 2: Generate Tavily search queries (español)
     console.log("📝 Generating Tavily search queries...");
     const tavilyQueriesPrompt = `
       Analiza esta decisión del usuario y genera 3-5 queries de búsqueda EN ESPAÑOL para buscar información actualizada en internet sobre esta decisión.
@@ -168,37 +237,14 @@ export const felipeController = {
       }
     `;
 
-    // Generate both in parallel
-    const [polymarketKeywordsResponse, tavilyQueriesResponse] = await Promise.all([
-      llmServiceManager.generateText(
-        {
-          prompt: polymarketKeywordsPrompt,
-          temperature: 0.7,
-          model: MODEL,
-        },
-        PROVIDER
-      ),
-      llmServiceManager.generateText(
-        {
-          prompt: tavilyQueriesPrompt,
-          temperature: 0.7,
-          model: MODEL,
-        },
-        PROVIDER
-      ),
-    ]);
-
-    // Parse Polymarket keywords
-    console.log("📥 Received Polymarket keywords, attempting to parse...");
-    let polymarketKeywords: string[] = [];
-    try {
-      const keywordsJson = cleanAndParseJSON(polymarketKeywordsResponse.content);
-      polymarketKeywords = keywordsJson.keywords || [];
-      console.log(`✅ Successfully parsed ${polymarketKeywords.length} Polymarket keywords`);
-    } catch (error) {
-      console.error("⚠️ Failed to parse Polymarket keywords:", error);
-      polymarketKeywords = [];
-    }
+    const tavilyQueriesResponse = await llmServiceManager.generateText(
+      {
+        prompt: tavilyQueriesPrompt,
+        temperature: 0.7,
+        model: MODEL,
+      },
+      PROVIDER
+    );
 
     // Parse Tavily queries
     console.log("📥 Received Tavily queries, attempting to parse...");
@@ -212,55 +258,36 @@ export const felipeController = {
       tavilyQueries = [];
     }
 
-    console.log(`🔍 Polymarket keywords (${polymarketKeywords.length}):`, polymarketKeywords);
     console.log(`🔍 Tavily queries (${tavilyQueries.length}):`, tavilyQueries);
 
-    // Step 2: Search Polymarket and Tavily in parallel
-    console.log("🔍 Searching Polymarket and Tavily in parallel...");
+    // Step 3: Search Tavily
+    console.log("🔍 Searching Tavily...");
+    let tavilyResults: TavilySearchResult[] = [];
+    if (tavilyQueries.length > 0) {
+      try {
+        const results = await tavilyService.searchMultipleQueries(tavilyQueries);
+        tavilyResults = tavilyService.filterByRelevance(results, 0.5);
+        console.log(`📰 Found ${tavilyResults.length} relevant Tavily results`);
+      } catch (error) {
+        console.error("Error searching Tavily:", error);
+      }
+    }
 
-    const [polymarketMarkets, tavilyResults] = await Promise.all([
-      // Polymarket search
-      (async () => {
-        if (polymarketKeywords.length === 0) return [];
-        try {
-          const markets = await polymarketService.searchMultipleKeywords(polymarketKeywords);
-          const filtered = polymarketService.filterByRelevance(markets, 500);
-          console.log(`📊 Found ${filtered.length} relevant Polymarket markets`);
-          return filtered;
-        } catch (error) {
-          console.error("Error searching Polymarket:", error);
-          return [];
-        }
-      })(),
-
-      // Tavily search
-      (async () => {
-        if (tavilyQueries.length === 0) return [];
-        try {
-          const results = await tavilyService.searchMultipleQueries(tavilyQueries);
-          const filtered = tavilyService.filterByRelevance(results, 0.5);
-          console.log(`📰 Found ${filtered.length} relevant Tavily results`);
-          return filtered;
-        } catch (error) {
-          console.error("Error searching Tavily:", error);
-          return [];
-        }
-      })(),
-    ]);
-
-    // Step 3: Build enriched context from Polymarket and Tavily
+    // Step 4: Build enriched context from Polymarket and Tavily
     let contextSections: string[] = [];
 
-    // Polymarket context
-    if (polymarketMarkets.length > 0) {
+    // Polymarket context - Lista de mercados disponibles (trending + específicos)
+    if (allMarkets.length > 0) {
       const polymarketContext = `
-📊 DATOS DE POLYMARKET (Mercados de predicción con dinero real):
-Los siguientes mercados muestran probabilidades reales basadas en apuestas de miles de personas:
+📊 MERCADOS DE POLYMARKET (Disponibles para asignar):
+Los siguientes son ${allMarkets.length} mercados relevantes de Polymarket con probabilidades basadas en dinero real.
+Incluye tanto mercados populares como mercados específicos relacionados a tu decisión.
+Para cada consecuencia que generes, debes seleccionar 0-5 mercados relevantes de esta lista usando sus IDs.
 
-${polymarketMarkets.slice(0, 15).map((market, idx) =>
-  `${idx + 1}. "${market.question}"
-   - Probabilidad: ${market.probability}%
-   - Volumen: $${(market.volume / 1000).toFixed(1)}k
+${allMarkets.map((market) =>
+  `[ID: ${market.id}] "${market.question}"
+   - Probabilidad actual: ${market.probability}%
+   - Volumen de apuestas: $${(market.volume / 1000).toFixed(1)}k
    - URL: ${market.url}`
 ).join("\n\n")}`;
       contextSections.push(polymarketContext);
@@ -272,8 +299,8 @@ ${polymarketMarkets.slice(0, 15).map((market, idx) =>
 📰 INFORMACIÓN ACTUAL DE INTERNET (vía Tavily):
 Los siguientes son artículos y noticias recientes relevantes para esta decisión:
 
-${tavilyResults.slice(0, 10).map((result, idx) =>
-  `${idx + 1}. "${result.title}"
+${tavilyResults.slice(0, 10).map((result, index) =>
+  `${index + 1}. "${result.title}"
    - Contenido: ${result.content.substring(0, 200)}...
    - Relevancia: ${(result.score * 100).toFixed(0)}%
    - URL: ${result.url}
@@ -285,67 +312,86 @@ ${tavilyResults.slice(0, 10).map((result, idx) =>
     const enrichedContext = contextSections.length > 0
       ? `\n\nCONTEXTO DE INFORMACIÓN REAL:\n${contextSections.join("\n\n")}
 
-IMPORTANTE: Usa este contexto real para fundamentar tus consecuencias:
-- Las probabilidades de Polymarket deben INFLUIR en tus estimaciones
+IMPORTANTE sobre cómo usar Polymarket:
+- Para cada consecuencia, DEBES seleccionar mercados relevantes de la lista anterior
+- Usa el ID del mercado (ej: "0x1234...") en el campo "relatedMarketIds"
+- Solo selecciona mercados que sean REALMENTE relevantes para esa consecuencia específica
+- Las probabilidades de Polymarket deben INFLUIR en tus estimaciones de probabilidad
 - La información de Tavily te da contexto actual y tendencias reales
-- NO inventes consecuencias, fundamenta en los datos proporcionados`
+- Si ningún mercado es relevante para una consecuencia, deja "relatedMarketIds" vacío`
       : "";
 
-    console.log(`📚 Context built: ${polymarketMarkets.length} Polymarket markets + ${tavilyResults.length} Tavily results`);
+    console.log(`📚 Context built: ${allMarkets.length} Polymarket markets (${trendingMarkets.length} trending + ${specificMarkets.length} specific) + ${tavilyResults.length} Tavily results`);
 
     // Step 4: Generate consequences with Polymarket context (with retry logic)
     console.log("🤖 Generating consequences with Polymarket context...");
 
     const systemPrompt = `
-      Eres Felipe, un asistente experto en análisis de consecuencias y exploración de futuros posibles.
+      Eres Felipe, un simulador del futuro que ayuda a las personas a explorar posibles escenarios.
 
-      El usuario te describirá una decisión que está considerando tomar. Tu tarea NO es darle opciones de qué hacer, sino mostrarle las POSIBLES CONSECUENCIAS de tomar esa decisión.
+      El usuario te enviará un mensaje que puede ser de DOS TIPOS:
 
-      Genera exactamente 20 posibles consecuencias o escenarios que podrían ocurrir si el usuario toma esa decisión.
+      TIPO 1 - DECISIÓN: El usuario está considerando tomar una decisión y quiere ver las consecuencias.
+      Ejemplos: "Voy a renunciar a mi trabajo", "Voy a lanzar una startup", "Me voy a mudar a Chile"
 
-      IMPORTANTE sobre las probabilidades:
+      TIPO 2 - PREGUNTA: El usuario pregunta sobre un evento futuro incierto.
+      Ejemplos: "¿Quién será el presidente de Chile?", "¿Bitcoin llegará a 100k?", "¿Habrá recesión en 2025?"
+
+      Tu tarea:
+      1. Analiza el mensaje y determina si es una DECISIÓN o una PREGUNTA
+      2. Responde según el tipo:
+
+      SI ES DECISIÓN → Genera 20 posibles consecuencias de tomar esa decisión
       - Las probabilidades son INDEPENDIENTES (NO deben sumar 100%)
-      - Cada consecuencia tiene su propia probabilidad de ocurrir
-      - Incluye al menos 3-5 consecuencias de BAJA probabilidad (1-10%) pero de ALTO IMPACTO:
-        * Algunas muy positivas (ejemplo: "Conoces al amor de tu vida en el nuevo trabajo - 5%")
-        * Algunas muy negativas (ejemplo: "La empresa quiebra a los 3 meses - 3%")
-      - Las consecuencias más probables (60-80%) deben ser las más realistas y comunes
-      - Las consecuencias moderadas (20-50%) deben ser plausibles pero menos comunes
+      - Incluye consecuencias de baja probabilidad (1-10%) pero alto impacto
+      - Las consecuencias más probables (60-80%) deben ser realistas
+      - Las moderadas (20-50%) plausibles pero menos comunes
 
-      Para cada consecuencia debes proporcionar:
+      SI ES PREGUNTA → Genera 2-6 escenarios/respuestas posibles
+      - Cada escenario es una respuesta posible a la pregunta
+      - Las probabilidades DEBEN sumar aproximadamente 100% (son mutuamente excluyentes)
+      - Ejemplo: "¿Quién gana la elección?" → [Candidato A: 45%, Candidato B: 40%, Otro: 15%]
+      - Enfócate en las opciones más probables según datos de Polymarket
+
+      Para cada escenario/consecuencia debes proporcionar:
       - nombre: Un nombre corto y descriptivo EN ESPAÑOL de la consecuencia (máximo 6 palabras)
       - descripcion: Una descripción detallada EN ESPAÑOL de cómo se desarrollaría este escenario (2-3 oraciones)
       - probabilidad: Un porcentaje entre 1-100 que indica qué tan probable es que esta consecuencia ocurra
       - impactos: Un array de 3-5 impactos específicos EN ESPAÑOL que tendría esta consecuencia en la vida del usuario
-      - polymarketQueries: Un array de 2-3 queries/keywords EN INGLÉS que el usuario podría usar para buscar más mercados relacionados en Polymarket sobre esta consecuencia específica (ejemplo: ["bitcoin price", "tech stocks 2025", "AI regulation"])
-      - polymarketInfluenced: Un booleano que indica si esta consecuencia fue influenciada por datos reales de Polymarket (true si hay mercados relevantes, false si no)
+      - relatedMarketIds: Un array de IDs de mercados de Polymarket (de la lista proporcionada) que sean REALMENTE relevantes para esta consecuencia. Puede ser un array vacío [] si ningún mercado es relevante.
+      - polymarketInfluenced: Un booleano que indica si esta consecuencia fue influenciada por datos reales de Polymarket (true si seleccionaste algún mercado relevante, false si no)
 
       ${enrichedContext}
 
       IMPORTANTE:
       - TODO el contenido (nombre, descripcion, impactos) debe estar EN ESPAÑOL
-      - SOLO polymarketQueries debe estar EN INGLÉS
+      - relatedMarketIds debe contener SOLO los IDs de mercados de la lista proporcionada
+      - Para PREGUNTAS: las probabilidades deben sumar ~100%
+      - Para DECISIONES: las probabilidades son independientes (no suman 100%)
       - Debes responder ÚNICAMENTE con un JSON válido, sin texto adicional antes ni después
 
       Formato de respuesta:
       {
+        "inputType": "decision" | "question",
         "consequences": [
           {
             "nombre": "string en español",
             "descripcion": "string en español",
             "probabilidad": number,
             "impactos": ["string en español", "string en español", "string en español"],
-            "polymarketQueries": ["query in english", "query in english", "query in english"],
+            "relatedMarketIds": ["market_id_1", "market_id_2"],
             "polymarketInfluenced": boolean
           }
         ]
       }
 
+      Mensaje del usuario: "${message}"
       Usuario: ${email}
     `;
 
     // Try generating consequences with automatic retry on parse failure
     let consequences = [];
+    let inputType = "decision"; // default
     let lastError: Error | null = null;
     const maxRetries = 2;
 
@@ -371,12 +417,14 @@ IMPORTANTE: Usa este contexto real para fundamentar tus consecuencias:
 
         const parsedResponse = cleanAndParseJSON(llmResponse.content);
         consequences = parsedResponse.consequences || [];
+        inputType = parsedResponse.inputType || "decision";
 
         if (consequences.length === 0) {
           throw new Error("No consequences found in response");
         }
 
-        console.log(`✅ Successfully parsed ${consequences.length} consequences on attempt ${attempt}`);
+        console.log(`✅ Successfully parsed ${consequences.length} ${inputType === "question" ? "scenarios" : "consequences"} on attempt ${attempt}`);
+        console.log(`📊 Input type detected: ${inputType.toUpperCase()}`);
         break; // Success, exit retry loop
 
       } catch (error) {
@@ -395,38 +443,54 @@ IMPORTANTE: Usa este contexto real para fundamentar tus consecuencias:
       }
     }
 
-    // Step 5: Attach relevant Polymarket markets to each consequence
-    console.log("🔗 Matching Polymarket markets to consequences...");
+    // Step 5: Map market IDs to actual market objects
+    console.log("🔗 Mapping market IDs to market objects...");
+
+    // Create a map of market ID -> market object for fast lookup
+    const marketMap = new Map<string, PolymarketMarket>();
+    allMarkets.forEach(market => {
+      marketMap.set(market.id, market);
+    });
+
     consequences = consequences.map((consequence: any) => {
-      // Find related markets based on queries
       const relatedMarkets: PolymarketMarket[] = [];
 
-      if (consequence.polymarketQueries && polymarketMarkets.length > 0) {
-        // Simple matching: find markets that contain any of the query keywords
-        const queries = consequence.polymarketQueries.map((q: string) => q.toLowerCase());
-
-        for (const market of polymarketMarkets) {
-          const marketText = `${market.question} ${market.description || ""}`.toLowerCase();
-
-          // Check if any query keyword appears in the market
-          const isRelevant = queries.some((query: string) => {
-            const keywords = query.split(" ");
-            return keywords.some(keyword => marketText.includes(keyword));
-          });
-
-          if (isRelevant && relatedMarkets.length < 5) {
+      if (consequence.relatedMarketIds && Array.isArray(consequence.relatedMarketIds)) {
+        // Look up each market ID
+        for (const marketId of consequence.relatedMarketIds) {
+          const market = marketMap.get(marketId);
+          if (market) {
             relatedMarkets.push(market);
+            console.log(`  ✅ Matched market "${market.question}" to consequence "${consequence.nombre}"`);
+          } else {
+            console.log(`  ⚠️  Market ID "${marketId}" not found in available markets`);
           }
         }
       }
 
+      // Override LLM probability with Polymarket average if markets exist
+      let finalProbability = consequence.probabilidad;
+      if (relatedMarkets.length > 0) {
+        const avgPolymarketProbability = Math.round(
+          relatedMarkets.reduce((sum, market) => sum + market.probability, 0) / relatedMarkets.length
+        );
+        console.log(`  🔄 Overriding LLM probability ${consequence.probabilidad}% with Polymarket average ${avgPolymarketProbability}% for "${consequence.nombre}"`);
+        finalProbability = avgPolymarketProbability;
+      }
+
+      // Remove relatedMarketIds from the final response (we don't need to send IDs to frontend)
+      const { relatedMarketIds, ...consequenceWithoutIds } = consequence;
+
       return {
-        ...consequence,
+        ...consequenceWithoutIds,
+        probabilidad: finalProbability,
         relatedMarkets,
+        // Keep polymarketQueries for backwards compatibility (can be removed later)
+        polymarketQueries: [],
       };
     });
 
-    console.log("✅ Generated", consequences.length, "consequences");
+    console.log("✅ Generated", consequences.length, "consequences with market mappings");
 
     // Step 6: Save decision to Firestore
     console.log("💾 Saving decision to Firestore...");
@@ -444,8 +508,10 @@ IMPORTANTE: Usa este contexto real para fundamentar tus consecuencias:
     }
 
     return c.json({
+      inputType: inputType,
       consequences: consequences,
       decisionId: savedDecision?.id,
+      tavilyResults: tavilyResults.slice(0, 10), // Return top 10 Tavily results
     });
   },
 

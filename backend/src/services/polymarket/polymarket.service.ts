@@ -168,6 +168,41 @@ export class PolymarketService {
   }
 
   /**
+   * Get trending/popular markets by searching broad categories
+   */
+  async getTrendingMarkets(limit: number = 30): Promise<PolymarketMarket[]> {
+    console.log("🔥 Fetching trending markets from Polymarket...");
+
+    // Search broad categories to get popular current markets
+    const trendingKeywords = [
+      "trump",
+      "election",
+      "politics",
+      "economy",
+      "stock market",
+      "crypto",
+      "bitcoin",
+      "AI",
+      "technology",
+      "sports",
+      "world",
+      "war",
+      "climate",
+    ];
+
+    const markets = await this.searchMultipleKeywords(trendingKeywords);
+
+    // Sort by volume (highest first) and take top N
+    const sortedMarkets = markets
+      .filter(m => m.active && m.volume > 1000)
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, limit);
+
+    console.log(`🔥 Found ${sortedMarkets.length} trending markets`);
+    return sortedMarkets;
+  }
+
+  /**
    * Filter markets by relevance score
    */
   filterByRelevance(

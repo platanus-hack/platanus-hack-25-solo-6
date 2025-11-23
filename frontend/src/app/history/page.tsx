@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { felipeService, type Decision, ApiError } from "@/services";
 import Link from "next/link";
+import { TbBinaryTree } from "react-icons/tb";
 
 export default function HistoryPage() {
   const { session, signOut } = useAuth();
@@ -58,42 +59,83 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-white dark:bg-black">
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Mis Decisiones
-        </h1>
-
-        {session?.user && (
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-            >
-              Nueva Decisión
-            </Link>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {session.user.name}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {session.user.email}
+      <header className="border-b border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Felipe
+              </h1>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Decision Assistant
               </p>
             </div>
-            <button
-              onClick={() => signOut()}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
-              Cerrar sesión
-            </button>
           </div>
-        )}
+
+          {session?.user && (
+            <div className="flex items-center gap-4">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700"
+              >
+                <TbBinaryTree className="h-4 w-4 -rotate-90" />
+                Explorar futuros
+              </Link>
+              <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+                {session.user.image ? (
+                  <img
+                    src={session.user.image}
+                    alt={session.user.name || ""}
+                    className="h-8 w-8 rounded-full ring-2 ring-blue-500"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white ring-2 ring-blue-500">
+                    {session.user.name?.charAt(0) ||
+                      session.user.email?.charAt(0)}
+                  </div>
+                )}
+                <div className="hidden sm:block">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {session.user.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {session.user.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => signOut()}
+                className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                title="Cerrar sesión"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Main content */}
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-6xl">
+          <h2 className="mb-6 text-3xl font-bold text-gray-900 dark:text-white">
+            Historial
+          </h2>
+
           {loading && (
             <div className="text-center">
               <p className="text-gray-600 dark:text-gray-400">
