@@ -146,9 +146,7 @@ export default function HistoryPage() {
 
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
-              <p className="text-sm text-red-800 dark:text-red-200">
-                {error}
-              </p>
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
@@ -180,13 +178,15 @@ export default function HistoryPage() {
                           {decision.decision}
                         </h3>
                       </Link>
+
                       <div className="mb-3 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span>
-                          {decision.consequences.length} consecuencias
+                          {decision.consequences.length} futuros generados
                         </span>
                         <span>•</span>
                         <span>{formatDate(decision.createdAt)}</span>
                       </div>
+
                       <div className="flex flex-wrap gap-2">
                         {decision.consequences.slice(0, 3).map((c, i) => (
                           <span

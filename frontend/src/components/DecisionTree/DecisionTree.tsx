@@ -18,18 +18,49 @@ import DetailPanel from "./DetailPanel";
 interface DecisionTreeProps {
   decision: string;
   consequences: Consequence[];
+  decisionId?: string;
 }
 
 const nodeTypes: NodeTypes = {
   consequence: ConsequenceNode,
 };
 
-export default function DecisionTree({ decision, consequences }: DecisionTreeProps) {
+export default function DecisionTree({
+  decision,
+  consequences,
+  decisionId,
+}: DecisionTreeProps) {
   const { data: session } = useSession();
   const [selectedConsequence, setSelectedConsequence] = useState<Consequence | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   // Map of nodeId -> array of child consequences
-  const [expandedNodes, setExpandedNodes] = useState<Map<string, Consequence[]>>(new Map());
+  const [expandedNodes, setExpandedNodes] = useState<Map<string, Consequence[]>>(() => {
+    // Initialize from Firestore data
+    const initialMap = new Map<string, Consequence[]>();
+
+    function buildExpandedNodesFromConsequences(
+      consequencesList: Consequence[],
+      parentId: string
+    ) {
+      consequencesList.forEach((consequence, index) => {
+        const nodeId = parentId === "root"
+          ? `consequence-${index}`
+          : `${parentId}-${index}`;
+
+        if (consequence.expandedConsequences && consequence.expandedConsequences.length > 0) {
+          console.log(`📂 Restoring expanded node: ${nodeId} with ${consequence.expandedConsequences.length} children`);
+          initialMap.set(nodeId, consequence.expandedConsequences);
+          // Recursively build for nested expansions
+          buildExpandedNodesFromConsequences(consequence.expandedConsequences, nodeId);
+        }
+      });
+    }
+
+    buildExpandedNodesFromConsequences(consequences, "root");
+    console.log(`🔄 Restored ${initialMap.size} expanded nodes from Firestore`);
+
+    return initialMap;
+  });
   // Set of nodeIds currently being expanded
   const [loadingNodes, setLoadingNodes] = useState<Set<string>>(new Set());
 
@@ -37,7 +68,7 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
   const { nodes, edges } = useMemo(() => {
     const nodeWidth = 200;
     const nodeHeight = 80;
-    const horizontalGap = 250;
+    const horizontalGap = 350;
     const verticalGap = 100;
 
     const allNodes: Node[] = [];
@@ -146,6 +177,7 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
   }, [consequences, expandedNodes, loadingNodes]);
 
   // Find consequence by nodeId recursively
+  // This looks in BOTH the Map (in-memory) AND expandedConsequences (from Firestore)
   const findConsequenceByNodeId = useCallback(
     (nodeId: string): Consequence | null => {
       if (nodeId === "root") return null;
@@ -158,9 +190,8 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
         return consequences[index] || null;
       }
 
-      // Navigate through expanded nodes
+      // Navigate through consequences recursively
       let current: Consequence[] = consequences;
-      let parentId = "root";
 
       for (let i = 1; i < parts.length; i++) {
         const index = parseInt(parts[i]);
@@ -172,7 +203,11 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
           if (!cons) return null;
           if (currentNodeId === nodeId) return cons;
 
-          const children = expandedNodes.get(currentNodeId);
+          // Try to get children from Map first, then from Firestore data
+          const childrenFromMap = expandedNodes.get(currentNodeId);
+          const childrenFromFirestore = cons.expandedConsequences;
+          const children = childrenFromMap || childrenFromFirestore;
+
           if (!children) return null;
           current = children;
         } else {
@@ -181,7 +216,11 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
           if (!cons) return null;
           if (currentNodeId === nodeId) return cons;
 
-          const children = expandedNodes.get(currentNodeId);
+          // Try to get children from Map first, then from Firestore data
+          const childrenFromMap = expandedNodes.get(currentNodeId);
+          const childrenFromFirestore = cons.expandedConsequences;
+          const children = childrenFromMap || childrenFromFirestore;
+
           if (!children) return null;
           current = children;
         }
@@ -203,6 +242,47 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
       const consequence = findConsequenceByNodeId(node.id);
       setSelectedConsequence(consequence);
       setSelectedNodeId(node.id);
+
+      // ALWAYS collapse siblings and restore/show current node's children
+      if (consequence?.expandedConsequences && consequence.expandedConsequences.length > 0) {
+        const parts = node.id.split("-");
+        const parentId = parts.slice(0, -1).join("-") || "root";
+
+        setExpandedNodes((prev) => {
+          const newMap = new Map(prev);
+          const isAlreadyInMap = newMap.has(node.id);
+
+          // First, remove all expanded nodes that share the same parent (siblings)
+          const keysToRemove: string[] = [];
+          newMap.forEach((value, key) => {
+            const keyParts = key.split("-");
+            const keyParent = keyParts.slice(0, -1).join("-") || "root";
+
+            // If this is a sibling (same parent, different node)
+            if (keyParent === parentId && key !== node.id) {
+              console.log(`🗑️  Collapsing sibling: ${key}`);
+              keysToRemove.push(key);
+              // Also remove any descendants
+              newMap.forEach((_, descendantKey) => {
+                if (descendantKey.startsWith(key + "-")) {
+                  console.log(`🗑️  Removing descendant: ${descendantKey}`);
+                  keysToRemove.push(descendantKey);
+                }
+              });
+            }
+          });
+
+          keysToRemove.forEach(key => newMap.delete(key));
+
+          // Then add/restore the current node's expansion
+          if (!isAlreadyInMap) {
+            console.log(`🔄 Restoring ${consequence.expandedConsequences!.length} children for node ${node.id} from Firestore`);
+          }
+          newMap.set(node.id, consequence.expandedConsequences!);
+
+          return newMap;
+        });
+      }
     },
     [findConsequenceByNodeId]
   );
@@ -226,7 +306,17 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
 
       try {
         console.log(`🌳 Expanding consequence: "${consequence.nombre}" (nodeId: ${nodeId})`);
+        console.log(`📌 Original decision: "${decision}"`);
+        console.log(`📍 Decision ID: "${decisionId || 'N/A'}"`);
+
+        if (!decisionId) {
+          console.warn("⚠️ No decisionId provided - expansion will not be persisted to Firestore");
+        }
+
         const childConsequences = await felipeService.expandConsequence(
+          decisionId || "",
+          nodeId,
+          decision,
           consequence,
           session.user.email
         );

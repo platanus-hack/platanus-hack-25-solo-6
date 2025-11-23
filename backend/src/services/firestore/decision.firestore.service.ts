@@ -2,7 +2,7 @@
 import { Firestore } from "@google-cloud/firestore";
 
 // types
-import type { Decision, CreateDecisionRequest } from "./types/decision.types.js";
+import type { Decision, CreateDecisionRequest, Consequence } from "./types/decision.types.js";
 
 export class DecisionFirestoreService {
   private firestore: Firestore;
@@ -138,6 +138,105 @@ export class DecisionFirestoreService {
       console.error(`Error updating decision ${decisionId}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Update a nested consequence with expanded consequences
+   * nodeId format: "consequence-0-1-2" represents path in the tree
+   */
+  async updateNestedConsequence(
+    decisionId: string,
+    userId: string,
+    nodeId: string,
+    expandedConsequences: Consequence[]
+  ): Promise<Decision> {
+    try {
+      const decision = await this.getDecisionById(decisionId);
+
+      if (!decision) {
+        throw new Error("Decision not found");
+      }
+
+      // Verify ownership
+      if (decision.userId !== userId) {
+        throw new Error("Unauthorized to update this decision");
+      }
+
+      // Parse nodeId to get the path: "consequence-0-1-2" -> [0, 1, 2]
+      const pathParts = nodeId.split("-").slice(1); // Remove "consequence" prefix
+      const indices = pathParts.map((p) => parseInt(p, 10));
+
+      console.log(`📍 Updating nested consequence at path: ${indices.join(" -> ")}`);
+
+      // Navigate to the target consequence and update it
+      const updatedConsequences = this.updateConsequenceAtPath(
+        decision.consequences,
+        indices,
+        expandedConsequences
+      );
+
+      // Update the entire decision with the new consequences tree
+      const updatedDecision = await this.updateDecision(decisionId, userId, {
+        consequences: updatedConsequences,
+      });
+
+      console.log(`✅ Successfully updated nested consequence in decision ${decisionId}`);
+      return updatedDecision;
+    } catch (error) {
+      console.error(`Error updating nested consequence:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Recursively navigate and update a consequence at a specific path
+   */
+  private updateConsequenceAtPath(
+    consequences: Consequence[],
+    path: number[],
+    expandedConsequences: Consequence[]
+  ): Consequence[] {
+    if (path.length === 0) {
+      throw new Error("Invalid path: cannot be empty");
+    }
+
+    const [currentIndex, ...remainingPath] = path;
+
+    if (currentIndex === undefined) {
+      throw new Error("Invalid path: index is undefined");
+    }
+
+    // Clone the array to avoid mutations
+    const updated = [...consequences];
+
+    if (currentIndex >= updated.length || !updated[currentIndex]) {
+      throw new Error(`Invalid index ${currentIndex} in path`);
+    }
+
+    const targetConsequence = updated[currentIndex];
+
+    // If this is the last index in the path, update this consequence
+    if (remainingPath.length === 0) {
+      updated[currentIndex] = {
+        ...targetConsequence,
+        expandedConsequences,
+      };
+      console.log(`  ✅ Updated consequence at index ${currentIndex}`);
+    } else {
+      // Otherwise, recurse deeper
+      const childConsequences = targetConsequence.expandedConsequences || [];
+
+      updated[currentIndex] = {
+        ...targetConsequence,
+        expandedConsequences: this.updateConsequenceAtPath(
+          childConsequences,
+          remainingPath,
+          expandedConsequences
+        ),
+      };
+    }
+
+    return updated;
   }
 }
 

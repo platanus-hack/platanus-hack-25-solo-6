@@ -24,6 +24,7 @@ export default function Dashboard() {
   const { session, signOut } = useAuth();
   const [decision, setDecision] = useState("");
   const [consequences, setConsequences] = useState<Consequence[]>([]);
+  const [decisionId, setDecisionId] = useState<string | undefined>(undefined);
   const [inputType, setInputType] = useState<"decision" | "question">(
     "decision"
   );
@@ -50,6 +51,7 @@ export default function Dashboard() {
       });
 
       setConsequences(result.consequences);
+      setDecisionId(result.decisionId);
       setInputType(result.inputType || "decision");
     } catch (err) {
       if (err instanceof ApiError) {
@@ -66,6 +68,7 @@ export default function Dashboard() {
   const handleNewQuery = () => {
     setDecision("");
     setConsequences([]);
+    setDecisionId(undefined);
     setError("");
     setInputType("decision");
   };
@@ -77,8 +80,6 @@ export default function Dashboard() {
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
     return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
   };
-
-  const isHighImpact = (probabilidad: number) => probabilidad <= 10;
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
@@ -191,9 +192,10 @@ export default function Dashboard() {
                 <h2 className="mb-4 text-5xl font-bold text-gray-900 dark:text-white">
                   Simula el futuro
                 </h2>
+
                 <p className="text-xl text-gray-600 dark:text-gray-400">
-                  Analiza decisiones o explora escenarios futuros con IA + datos
-                  reales de Polymarket
+                  Analiza decisiones o explora escenarios futuros con IA +
+                  predictores de mercado
                 </p>
               </div>
             )}
@@ -274,7 +276,11 @@ export default function Dashboard() {
 
               {/* Tree view */}
               {viewMode === "tree" && (
-                <DecisionTree decision={decision} consequences={consequences} />
+                <DecisionTree
+                  decision={decision}
+                  consequences={consequences}
+                  decisionId={decisionId}
+                />
               )}
 
               {/* List view */}
@@ -294,11 +300,7 @@ export default function Dashboard() {
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                               {consequence.nombre}
                             </h3>
-                            {isHighImpact(consequence.probabilidad) && (
-                              <span className="rounded-full bg-purple-600 px-2 py-0.5 text-xs font-medium text-white">
-                                Alto impacto
-                              </span>
-                            )}
+
                             {consequence.polymarketInfluenced && (
                               <span
                                 className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white"

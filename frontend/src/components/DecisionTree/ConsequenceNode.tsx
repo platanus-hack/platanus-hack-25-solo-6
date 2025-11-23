@@ -14,7 +14,6 @@ function ConsequenceNode({ data, selected }: NodeProps<ConsequenceNodeData>) {
   const getNodeColor = (prob: number) => {
     if (prob >= 60) return "bg-green-500";
     if (prob >= 30) return "bg-yellow-500";
-    if (prob <= 10) return "bg-purple-500";
     return "bg-red-500";
   };
 

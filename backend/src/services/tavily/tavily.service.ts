@@ -110,10 +110,29 @@ export class TavilyService {
   }
 }
 
-// Singleton instance
-const apiKey = process.env["TAVILY_API_KEY"] || "";
-if (!apiKey) {
-  console.warn("⚠️  TAVILY_API_KEY not found in environment variables");
+// Lazy singleton instance
+let tavilyServiceInstance: TavilyService | null = null;
+
+function getTavilyService(): TavilyService {
+  if (!tavilyServiceInstance) {
+    const apiKey = process.env["TAVILY_API_KEY"] || "";
+
+    if (!apiKey) {
+      console.warn("⚠️  TAVILY_API_KEY not found in environment variables");
+      throw new Error("TAVILY_API_KEY is required but not found in environment");
+    }
+
+    console.log("✅ Initializing Tavily service with API key");
+    tavilyServiceInstance = new TavilyService(apiKey);
+  }
+
+  return tavilyServiceInstance;
 }
 
-export const tavilyService = new TavilyService(apiKey);
+// Export a proxy object that delegates to the lazy-loaded instance
+export const tavilyService = {
+  search: (params: TavilySearchParams) => getTavilyService().search(params),
+  searchMultipleQueries: (queries: string[]) => getTavilyService().searchMultipleQueries(queries),
+  filterByRelevance: (results: TavilySearchResult[], minScore?: number) =>
+    getTavilyService().filterByRelevance(results, minScore),
+};

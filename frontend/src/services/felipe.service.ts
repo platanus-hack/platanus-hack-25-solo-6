@@ -29,6 +29,7 @@ export interface Consequence {
   polymarketQueries: string[];
   polymarketInfluenced: boolean;
   relatedMarkets: PolymarketMarket[];
+  expandedConsequences?: Consequence[]; // Consecuencias expandidas recursivamente
 }
 
 export interface StartDecisionMakingRequest {
@@ -143,6 +144,9 @@ export const felipeService = {
    * Expand a consequence (get consequences of a consequence)
    */
   async expandConsequence(
+    decisionId: string,
+    nodeId: string,
+    originalDecision: string,
     consequence: Consequence,
     email: string
   ): Promise<Consequence[]> {
@@ -150,7 +154,13 @@ export const felipeService = {
       "/felipe/expand-consequence",
       {
         method: "POST",
-        body: JSON.stringify({ consequence, email }),
+        body: JSON.stringify({
+          decisionId,
+          nodeId,
+          originalDecision,
+          consequence,
+          email,
+        }),
       }
     );
 

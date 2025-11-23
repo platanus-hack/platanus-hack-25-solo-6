@@ -8,6 +8,7 @@ export interface Consequence {
   polymarketQueries: string[];
   polymarketInfluenced: boolean;
   relatedMarkets: PolymarketMarket[];
+  expandedConsequences?: Consequence[]; // Consecuencias expandidas recursivamente
 }
 
 export interface PolymarketMarket {
