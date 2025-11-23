@@ -23,44 +23,46 @@ function SignInContent() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F4F3ED] relative">
-      <div className="absolute">
+    <main className="min-h-screen bg-[#F4F3ED] relative px-4">
+      <div className="absolute left-4 top-4 md:left-6 md:top-6">
         <Image
           src="/assets/images/logo/dark.png"
           alt="Felipe logo"
-          width={150}
-          height={150}
+          width={100}
+          height={100}
+          className="w-20 h-20 md:w-[150px] md:h-[150px]"
         />
       </div>
 
       {/* Centered content */}
       <div className="flex flex-col items-center justify-center min-h-screen">
         <h1
-          className="text-4xl font-bold mb-4 text-center text-gray-900"
+          className="text-3xl md:text-4xl font-bold mb-3 md:mb-4 text-center text-gray-900 px-4"
           style={{ fontFamily: "var(--font-space-grotesk), Georgia, serif" }}
         >
           Hola, soy Felipe
         </h1>
 
-        <p className="text-lg text-center text-gray-600 mb-10 max-w-2xl px-4">
+        <p className="text-base md:text-lg text-center text-gray-600 mb-8 md:mb-10 max-w-2xl px-4">
           Soy un asistente que te ayudará a tomar decisiones complejas en futuros simulados combinando LLM y mercados predictivos
         </p>
 
         <button
           onClick={handleGoogleSignIn}
           disabled={isLoading}
-          className="flex items-center justify-center w-[400px] max-w-full h-14 rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors shadow-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center w-full max-w-[400px] h-12 md:h-14 mx-4 rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors shadow-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <div className="flex items-center justify-center h-full w-14 border-r border-gray-300">
+          <div className="flex items-center justify-center h-full w-12 md:w-14 border-r border-gray-300">
             <Image
               src="/assets/images/logos/google.svg"
               alt="Google logo"
-              width={24}
-              height={24}
+              width={20}
+              height={20}
+              className="w-5 h-5 md:w-6 md:h-6"
             />
           </div>
 
-          <span className="flex-1 text-center font-space-grotesk text-base text-gray-800">
+          <span className="flex-1 text-center font-space-grotesk text-sm md:text-base text-gray-800">
             {isLoading ? "Iniciando sesión..." : "Iniciar sesión con Google"}
           </span>
         </button>

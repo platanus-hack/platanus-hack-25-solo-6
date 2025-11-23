@@ -69,26 +69,26 @@ export default function DecisionDetailPage() {
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
+          <div className="flex items-center gap-2 md:gap-3">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                 Felipe
               </h1>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              <p className="text-[10px] md:text-xs font-medium text-gray-500 dark:text-gray-400">
                 Decision Assistant
               </p>
             </div>
           </div>
 
           {session?.user && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <Link
                 href="/history"
-                className="flex items-center gap-2 rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex items-center gap-1 md:gap-2 rounded-lg bg-gray-100 px-3 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-semibold text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <svg
-                  className="h-4 w-4"
+                  className="h-3 w-3 md:h-4 md:w-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -100,16 +100,37 @@ export default function DecisionDetailPage() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                Historial
+                <span className="hidden sm:inline">Historial</span>
               </Link>
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700"
+                className="flex items-center gap-1 md:gap-2 rounded-lg bg-blue-600 px-3 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-semibold text-white transition-all hover:bg-blue-700"
               >
-                <TbBinaryTree className="h-4 w-4 -rotate-90" />
-                Explorar futuros
+                <TbBinaryTree className="h-3 w-3 md:h-4 md:w-4 -rotate-90" />
+                <span className="hidden sm:inline">Explorar futuros</span>
+                <span className="sm:hidden">Nuevo</span>
               </Link>
-              <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <button
+                onClick={() => signOut()}
+                className="flex md:hidden items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                title="Cerrar sesión"
+              >
+                <svg
+                  className="h-3 w-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                Salir
+              </button>
+              <div className="hidden md:flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
                 {session.user.image ? (
                   <img
                     src={session.user.image}
@@ -122,7 +143,7 @@ export default function DecisionDetailPage() {
                       session.user.email?.charAt(0)}
                   </div>
                 )}
-                <div className="hidden sm:block">
+                <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {session.user.name}
                   </p>
@@ -133,7 +154,7 @@ export default function DecisionDetailPage() {
               </div>
               <button
                 onClick={() => signOut()}
-                className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                className="hidden md:block rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                 title="Cerrar sesión"
               >
                 <svg
@@ -156,16 +177,16 @@ export default function DecisionDetailPage() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 md:p-6">
         {/* Title and breadcrumb */}
         {decision && (
-          <div className="mx-auto mb-6" style={{ maxWidth: "64rem" }}>
+          <div className="mx-auto mb-4 md:mb-6" style={{ maxWidth: "64rem" }}>
             <Link
               href="/history"
-              className="mb-2 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+              className="mb-2 inline-flex items-center gap-2 text-xs md:text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
               <svg
-                className="h-4 w-4"
+                className="h-3 w-3 md:h-4 md:w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -179,10 +200,10 @@ export default function DecisionDetailPage() {
               </svg>
               Volver al Historial
             </Link>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {decision.decision}
             </h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs md:text-sm text-gray-500 dark:text-gray-400">
               Creada el {formatDate(decision.createdAt)}
             </p>
           </div>
@@ -209,14 +230,14 @@ export default function DecisionDetailPage() {
           >
             {/* Header with view toggle */}
             <div
-              className="mb-6 mx-auto flex items-center justify-between"
+              className="mb-4 md:mb-6 mx-auto flex items-center justify-between"
               style={{ maxWidth: "64rem" }}
             >
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
                   Futuros analizadas ({decision.consequences.length})
                 </h2>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                <p className="mt-1 text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   {viewMode === "list"
                     ? "Ordenadas por probabilidad de ocurrencia."
                     : "Haz click en un nodo para ver sus detalles."}{" "}
@@ -224,8 +245,8 @@ export default function DecisionDetailPage() {
                 </p>
               </div>
 
-              {/* View mode toggle */}
-              <div className="flex rounded-lg border border-gray-300 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">
+              {/* View mode toggle - Hidden on mobile */}
+              <div className="hidden md:flex rounded-lg border border-gray-300 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">
                 <button
                   onClick={() => setViewMode("tree")}
                   className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
@@ -275,33 +296,35 @@ export default function DecisionDetailPage() {
               </div>
             </div>
 
-            {/* Tree view */}
+            {/* Tree view - Hidden on mobile */}
             {viewMode === "tree" && (
-              <DecisionTree
-                decision={decision.decision}
-                consequences={decision.consequences}
-                decisionId={decision.id}
-              />
+              <div className="hidden md:block">
+                <DecisionTree
+                  decision={decision.decision}
+                  consequences={decision.consequences}
+                  decisionId={decision.id}
+                />
+              </div>
             )}
 
-            {/* List view */}
-            {viewMode === "list" && (
-              <div className="space-y-4">
+            {/* List view - Always shown on mobile */}
+            {(viewMode === "list" || true) && (
+              <div className="space-y-3 md:space-y-4">
                 {decision.consequences.map(
                   (consequence: Consequence, index: number) => (
                     <div
                       key={index}
-                      className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                      className="rounded-lg border border-gray-200 bg-white p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
                     >
-                      <div className="mb-2 flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <div className="mb-2 flex items-start justify-between gap-2 md:gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                               {consequence.nombre}
                             </h3>
                             {consequence.polymarketInfluenced && (
                               <span
-                                className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white"
+                                className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] md:text-xs font-medium text-white w-fit"
                                 title="Influenciado por datos de Polymarket"
                               >
                                 📊 Polymarket
@@ -310,21 +333,21 @@ export default function DecisionDetailPage() {
                           </div>
                         </div>
                         <span
-                          className={`rounded-full px-3 py-1 text-sm font-medium ${getProbabilityColor(
+                          className={`rounded-full px-2 md:px-3 py-1 text-xs md:text-sm font-medium flex-shrink-0 ${getProbabilityColor(
                             consequence.probabilidad
                           )}`}
                         >
                           {consequence.probabilidad}%
                         </span>
                       </div>
-                      <p className="mb-4 text-gray-600 dark:text-gray-400">
+                      <p className="mb-3 md:mb-4 text-sm md:text-base text-gray-600 dark:text-gray-400">
                         {consequence.descripcion}
                       </p>
-                      <div className="mb-4">
-                        <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      <div className="mb-3 md:mb-4">
+                        <p className="mb-2 text-xs md:text-sm font-medium text-gray-900 dark:text-white">
                           Impactos potenciales:
                         </p>
-                        <ul className="list-inside list-disc space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <ul className="list-inside list-disc space-y-1 text-xs md:text-sm text-gray-600 dark:text-gray-400">
                           {consequence.impactos.map((impacto, i) => (
                             <li key={i}>{impacto}</li>
                           ))}
@@ -334,8 +357,8 @@ export default function DecisionDetailPage() {
                       {/* Polymarket markets for list view */}
                       {consequence.relatedMarkets &&
                         consequence.relatedMarkets.length > 0 && (
-                          <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
-                            <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                          <div className="mt-3 md:mt-4 border-t border-gray-200 pt-3 md:pt-4 dark:border-gray-700">
+                            <p className="mb-2 text-xs md:text-sm font-medium text-gray-900 dark:text-white">
                               📊 Mercados relacionados en Polymarket (
                               {consequence.relatedMarkets.length}):
                             </p>
@@ -347,10 +370,10 @@ export default function DecisionDetailPage() {
                                     key={market.id}
                                     className="rounded border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800"
                                   >
-                                    <p className="text-xs text-gray-900 dark:text-white">
+                                    <p className="text-[11px] md:text-xs text-gray-900 dark:text-white">
                                       {market.question}
                                     </p>
-                                    <div className="mt-1 flex items-center gap-3 text-[10px] text-gray-600 dark:text-gray-400">
+                                    <div className="mt-1 flex items-center gap-2 md:gap-3 text-[10px] text-gray-600 dark:text-gray-400">
                                       <span>
                                         Prob:{" "}
                                         <strong>{market.probability}%</strong>

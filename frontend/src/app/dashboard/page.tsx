@@ -1,7 +1,7 @@
 "use client";
 
 // react
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // next
 import Image from "next/image";
@@ -31,6 +31,22 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("tree");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile and force list view
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setViewMode("list");
+      }
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,36 +101,37 @@ export default function Dashboard() {
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
       {/* Header Mejorado */}
       <header className="border-b border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
+          <div className="flex items-center gap-2 md:gap-3">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                 Felipe
               </h1>
 
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              <p className="text-[10px] md:text-xs font-medium text-gray-500 dark:text-gray-400">
                 Decision Assistant
               </p>
             </div>
           </div>
 
           {session?.user && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {consequences.length > 0 && (
                 <button
                   onClick={handleNewQuery}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700"
+                  className="flex items-center gap-1 md:gap-2 rounded-lg bg-blue-600 px-3 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-semibold text-white transition-all hover:bg-blue-700"
                 >
-                  <TbBinaryTree className="h-4 w-4 -rotate-90" />
-                  Explorar futuros
+                  <TbBinaryTree className="h-3 w-3 md:h-4 md:w-4 -rotate-90" />
+                  <span className="hidden sm:inline">Explorar futuros</span>
+                  <span className="sm:hidden">Nuevo</span>
                 </button>
               )}
               <a
                 href="/history"
-                className="flex items-center gap-2 rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex items-center gap-1 md:gap-2 rounded-lg bg-gray-100 px-3 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-semibold text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <svg
-                  className="h-4 w-4"
+                  className="h-3 w-3 md:h-4 md:w-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -126,9 +143,29 @@ export default function Dashboard() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                Historial
+                <span className="hidden sm:inline">Historial</span>
               </a>
-              <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <button
+                onClick={() => signOut()}
+                className="flex md:hidden items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                title="Cerrar sesión"
+              >
+                <svg
+                  className="h-3 w-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                Salir
+              </button>
+              <div className="hidden md:flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
                 {session.user.image ? (
                   <img
                     src={session.user.image}
@@ -141,7 +178,7 @@ export default function Dashboard() {
                       session.user.email?.charAt(0)}
                   </div>
                 )}
-                <div className="hidden sm:block">
+                <div>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {session.user.name}
                   </p>
@@ -152,7 +189,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => signOut()}
-                className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                className="hidden md:block rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                 title="Cerrar sesión"
               >
                 <svg
@@ -175,7 +212,7 @@ export default function Dashboard() {
       </header>
 
       {/* Main content */}
-      <main className="flex flex-1 items-center py-8">
+      <main className="flex flex-1 items-center py-4 md:py-8">
         <div
           className="mx-auto w-full"
           style={{
@@ -186,14 +223,14 @@ export default function Dashboard() {
           }}
         >
           {/* Input form - Diseño Minimalista */}
-          <div className="mb-8 mx-auto px-6" style={{ maxWidth: "1200px" }}>
+          <div className="mb-6 md:mb-8 mx-auto px-4 md:px-6" style={{ maxWidth: "1200px" }}>
             {!consequences.length && (
-              <div className="mb-12 text-center">
-                <h2 className="mb-4 text-5xl font-bold text-gray-900 dark:text-white">
+              <div className="mb-8 md:mb-12 text-center">
+                <h2 className="mb-3 md:mb-4 text-3xl md:text-5xl font-bold text-gray-900 dark:text-white">
                   Simula el futuro
                 </h2>
 
-                <p className="text-xl text-gray-600 dark:text-gray-400">
+                <p className="text-base md:text-xl text-gray-600 dark:text-gray-400 px-4">
                   Analiza decisiones o explora escenarios futuros con IA +
                   predictores de mercado
                 </p>
@@ -201,27 +238,27 @@ export default function Dashboard() {
             )}
 
             <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div className="flex gap-3">
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                   <input
                     type="text"
                     id="decision"
                     value={decision}
                     onChange={(e) => setDecision(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-4 text-lg text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 md:px-6 md:py-4 text-base md:text-lg text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
                     placeholder="Describe tu decisión..."
                     disabled={loading}
                   />
                   <button
                     type="submit"
                     disabled={loading}
-                    className="rounded-lg bg-blue-600 px-8 py-4 text-lg font-semibold text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400"
+                    className="rounded-lg bg-blue-600 px-6 py-3 md:px-8 md:py-4 text-base md:text-lg font-semibold text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400"
                   >
                     {loading ? "Analizando..." : "Analizar"}
                   </button>
                 </div>
                 {error && (
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-600 dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+                  <div className="rounded-lg bg-red-50 border border-red-200 p-3 md:p-4 text-xs md:text-sm text-red-600 dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
                     {error}
                   </div>
                 )}
@@ -234,48 +271,50 @@ export default function Dashboard() {
             <div>
               {/* Header with view toggle - Simple */}
               <div
-                className="mb-6 mx-auto px-6 flex items-center justify-between"
+                className="mb-4 md:mb-6 mx-auto px-4 md:px-6 flex items-center justify-between"
                 style={{ maxWidth: "1200px" }}
               >
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {consequences.length} Posibles Futuros
                   </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                     {viewMode === "list"
                       ? "Ordenadas por probabilidad"
                       : "Haz clic en un nodo para expandir"}
                   </p>
                 </div>
 
-                {/* View mode toggle */}
-                <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-700">
-                  <button
-                    onClick={() => setViewMode("tree")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      viewMode === "tree"
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 cursor-pointer"
-                    }`}
-                  >
-                    Árbol
-                  </button>
+                {/* View mode toggle - Hidden on mobile */}
+                {!isMobile && (
+                  <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-700">
+                    <button
+                      onClick={() => setViewMode("tree")}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        viewMode === "tree"
+                          ? "bg-blue-600 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 cursor-pointer"
+                      }`}
+                    >
+                      Árbol
+                    </button>
 
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`px-4 py-2 text-sm font-medium border-l border-gray-300 transition-colors dark:border-gray-700 ${
-                      viewMode === "list"
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 cursor-pointer"
-                    }`}
-                  >
-                    Lista
-                  </button>
-                </div>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`px-4 py-2 text-sm font-medium border-l border-gray-300 transition-colors dark:border-gray-700 ${
+                        viewMode === "list"
+                          ? "bg-blue-600 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 cursor-pointer"
+                      }`}
+                    >
+                      Lista
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Tree view */}
-              {viewMode === "tree" && (
+              {/* Tree view - Hidden on mobile */}
+              {viewMode === "tree" && !isMobile && (
                 <DecisionTree
                   decision={decision}
                   consequences={consequences}
@@ -283,27 +322,27 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* List view */}
-              {viewMode === "list" && (
+              {/* List view - Always shown on mobile */}
+              {(viewMode === "list" || isMobile) && (
                 <div
-                  className="mx-auto space-y-4 px-6"
+                  className="mx-auto space-y-3 md:space-y-4 px-4 md:px-6"
                   style={{ maxWidth: "1200px" }}
                 >
                   {consequences.map((consequence, index) => (
                     <div
                       key={index}
-                      className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"
+                      className="rounded-lg border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-800 dark:bg-gray-900"
                     >
-                      <div className="mb-2 flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <div className="mb-2 flex items-start justify-between gap-2 md:gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                               {consequence.nombre}
                             </h3>
 
                             {consequence.polymarketInfluenced && (
                               <span
-                                className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white"
+                                className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] md:text-xs font-medium text-white w-fit"
                                 title="Influenciado por datos de Polymarket"
                               >
                                 📊 Polymarket
@@ -312,21 +351,21 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <span
-                          className={`rounded-full px-3 py-1 text-sm font-medium ${getProbabilityColor(
+                          className={`rounded-full px-2 md:px-3 py-1 text-xs md:text-sm font-medium flex-shrink-0 ${getProbabilityColor(
                             consequence.probabilidad
                           )}`}
                         >
                           {consequence.probabilidad}%
                         </span>
                       </div>
-                      <p className="mb-4 text-gray-600 dark:text-gray-400">
+                      <p className="mb-3 md:mb-4 text-sm md:text-base text-gray-600 dark:text-gray-400">
                         {consequence.descripcion}
                       </p>
-                      <div className="mb-4">
-                        <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                      <div className="mb-3 md:mb-4">
+                        <p className="mb-2 text-xs md:text-sm font-medium text-gray-900 dark:text-white">
                           Impactos potenciales:
                         </p>
-                        <ul className="list-inside list-disc space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <ul className="list-inside list-disc space-y-1 text-xs md:text-sm text-gray-600 dark:text-gray-400">
                           {consequence.impactos.map((impacto, i) => (
                             <li key={i}>{impacto}</li>
                           ))}
@@ -336,8 +375,8 @@ export default function Dashboard() {
                       {/* Polymarket markets for list view */}
                       {consequence.relatedMarkets &&
                         consequence.relatedMarkets.length > 0 && (
-                          <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
-                            <p className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                          <div className="mt-3 md:mt-4 border-t border-gray-200 pt-3 md:pt-4 dark:border-gray-700">
+                            <p className="mb-2 text-xs md:text-sm font-medium text-gray-900 dark:text-white">
                               📊 Mercados relacionados en Polymarket (
                               {consequence.relatedMarkets.length}):
                             </p>
@@ -349,10 +388,10 @@ export default function Dashboard() {
                                     key={market.id}
                                     className="rounded border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800"
                                   >
-                                    <p className="text-xs text-gray-900 dark:text-white">
+                                    <p className="text-[11px] md:text-xs text-gray-900 dark:text-white">
                                       {market.question}
                                     </p>
-                                    <div className="mt-1 flex items-center gap-3 text-[10px] text-gray-600 dark:text-gray-400">
+                                    <div className="mt-1 flex items-center gap-2 md:gap-3 text-[10px] text-gray-600 dark:text-gray-400">
                                       <span>
                                         Prob:{" "}
                                         <strong>{market.probability}%</strong>

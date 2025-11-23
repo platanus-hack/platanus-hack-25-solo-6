@@ -17,17 +17,17 @@ export default function Home() {
       </div>
 
       {/* Header Navigation */}
-      <header className="relative z-10 flex items-center justify-between px-8 py-6">
+      <header className="relative z-10 flex items-center justify-between px-4 py-4 md:px-8 md:py-6">
         <div className="flex items-center gap-3">
           <div className="text-white">
-            <h1 className="text-2xl font-bold">Felipe</h1>
+            <h1 className="text-xl md:text-2xl font-bold">Felipe</h1>
           </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="flex items-center gap-4 md:gap-8">
           <Link
             href="/sign-in"
-            className="text-white/90 hover:text-white transition-colors text-sm font-medium"
+            className="text-white/90 hover:text-white transition-colors text-xs md:text-sm font-medium"
           >
             Log in
           </Link>
@@ -35,10 +35,10 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex min-h-[calc(100vh-88px)] flex-col items-start justify-between px-8 py-12 md:px-16 md:py-16">
+      <main className="relative z-10 flex min-h-[calc(100vh-88px)] flex-col items-start justify-between px-4 py-8 md:px-16 md:py-16">
         {/* Hero Text */}
         <div className="max-w-4xl">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-tight mb-8">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-tight mb-8">
             Probabilidades reales.
             <br />
             Futuros simulados.
@@ -46,11 +46,11 @@ export default function Home() {
         </div>
 
         {/* Bottom Section */}
-        <div className="flex w-full flex-col md:flex-row items-end justify-between gap-8">
+        <div className="flex w-full flex-col md:flex-row items-start md:items-end justify-between gap-6 md:gap-8">
           {/* Bottom Left Text */}
           <div className="flex flex-col gap-2">
-            <p className="text-lg font-semibold text-white">Felipe AI</p>
-            <div className="flex gap-4 text-sm text-white/80">
+            <p className="text-base md:text-lg font-semibold text-white">Felipe AI</p>
+            <div className="flex gap-3 md:gap-4 text-xs md:text-sm text-white/80">
               <span>Analiza</span>
               <span>Predice</span>
               <span>Decide</span>
@@ -58,8 +58,8 @@ export default function Home() {
           </div>
 
           {/* Bottom Right - Description and CTA */}
-          <div className="max-w-2xl">
-            <p className="text-white/90 text-base md:text-lg mb-6 leading-relaxed">
+          <div className="max-w-2xl w-full md:w-auto">
+            <p className="text-white/90 text-sm md:text-base lg:text-lg mb-4 md:mb-6 leading-relaxed">
               Transforma decisiones complejas en futuros simulados con
               inteligencia artificial de última generación.{" "}
               <span className="text-white font-medium">
@@ -67,9 +67,9 @@ export default function Home() {
               </span>
             </p>
 
-            <div className="flex gap-4">
-              <Link href="/sign-in">
-                <button className="px-8 py-3 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold cursor-pointer">
+            <div className="flex gap-3 md:gap-4">
+              <Link href="/sign-in" className="flex-1 md:flex-none">
+                <button className="w-full md:w-auto px-6 md:px-8 py-2.5 md:py-3 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm md:text-base cursor-pointer">
                   Comenzar
                 </button>
               </Link>
