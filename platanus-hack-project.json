@@ -1,4 +1,5 @@
 {
-  "project-name": "<FILL THIS>",
-  "project-description-spanish": "<FILL THIS>"
+  "project-name": "Felipe, tu copiloto para tomas decisiones y ver futuros posibles",
+  "project-description-spanish": "Analiza decisiones o explora escenarios futuros con IA + predictores de mercado",
+  "deploy-url": "https://platanus-hack-25-solo-6.vercel.app"
 }
