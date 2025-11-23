@@ -32,6 +32,9 @@ export interface PolymarketMarketResponse {
   description?: string;
   outcomes?: string[];
   outcomePrices?: string[];
+  lastTradePrice?: number;
+  bestBid?: number;
+  bestAsk?: number;
   volume?: string;
   volumeNum?: number;
   liquidity?: string;

@@ -35,12 +35,12 @@ export default function Dashboard() {
     setConsequences([]);
 
     try {
-      const consequences = await felipeService.startDecisionMaking({
+      const result = await felipeService.startDecisionMaking({
         message: decision,
         email: session?.user?.email || "",
       });
 
-      setConsequences(consequences);
+      setConsequences(result.consequences);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -75,6 +75,12 @@ export default function Dashboard() {
 
         {session?.user && (
           <div className="flex items-center gap-4">
+            <a
+              href="/history"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Mis Decisiones
+            </a>
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {session.user.name}

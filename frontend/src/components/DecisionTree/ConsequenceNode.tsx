@@ -40,6 +40,7 @@ function ConsequenceNode({ data, selected }: NodeProps<ConsequenceNodeData>) {
       }`}
     >
       <Handle type="target" position={Position.Left} className="!bg-gray-400" />
+      <Handle type="source" position={Position.Right} className="!bg-gray-400" />
       <div className="text-center">
         <div className="flex items-center justify-center gap-1">
           <p className="text-xs font-semibold text-white">{label}</p>

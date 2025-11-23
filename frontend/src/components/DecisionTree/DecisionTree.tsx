@@ -10,6 +10,8 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 
 import type { Consequence } from "@/services";
+import { felipeService } from "@/services";
+import { useSession } from "next-auth/react";
 import ConsequenceNode from "./ConsequenceNode";
 import DetailPanel from "./DetailPanel";
 
@@ -23,20 +25,93 @@ const nodeTypes: NodeTypes = {
 };
 
 export default function DecisionTree({ decision, consequences }: DecisionTreeProps) {
+  const { data: session } = useSession();
   const [selectedConsequence, setSelectedConsequence] = useState<Consequence | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // Map of nodeId -> array of child consequences
+  const [expandedNodes, setExpandedNodes] = useState<Map<string, Consequence[]>>(new Map());
+  // Set of nodeIds currently being expanded
+  const [loadingNodes, setLoadingNodes] = useState<Set<string>>(new Set());
 
-  // Create nodes and edges
+  // Create nodes and edges with hierarchical support
   const { nodes, edges } = useMemo(() => {
     const nodeWidth = 200;
     const nodeHeight = 80;
-    const horizontalGap = 200;
+    const horizontalGap = 250;
     const verticalGap = 100;
 
-    // Calculate total height needed for all consequence nodes
-    const totalHeight = consequences.length * nodeHeight + (consequences.length - 1) * verticalGap;
-    const startY = -totalHeight / 2 + nodeHeight / 2;
+    const allNodes: Node[] = [];
+    const allEdges: Edge[] = [];
 
-    // Root node (decision) - a la izquierda
+    // Helper function to recursively build tree
+    function buildTree(
+      parentId: string,
+      children: Consequence[],
+      level: number,
+      startY: number
+    ): number {
+      if (children.length === 0) return startY;
+
+      const totalHeight = children.length * nodeHeight + (children.length - 1) * verticalGap;
+      let currentY = startY - totalHeight / 2 + nodeHeight / 2;
+
+      children.forEach((consequence, index) => {
+        const nodeId = parentId === "root"
+          ? `consequence-${index}`
+          : `${parentId}-${index}`;
+
+        const isExpanded = expandedNodes.has(nodeId);
+        const isLoading = loadingNodes.has(nodeId);
+
+        console.log(`📍 Creating node: ${nodeId} at level ${level}, parent: ${parentId}`);
+
+        // Create node
+        allNodes.push({
+          id: nodeId,
+          type: "consequence",
+          position: {
+            x: level * horizontalGap,
+            y: currentY,
+          },
+          data: {
+            label: consequence.nombre,
+            probabilidad: consequence.probabilidad,
+            isRoot: false,
+            hasPolymarketData: consequence.relatedMarkets && consequence.relatedMarkets.length > 0,
+            isExpanded,
+            isLoading,
+          },
+        });
+
+        // Create edge from parent to this node
+        const edge = {
+          id: `edge-${parentId}-${nodeId}`,
+          source: parentId,
+          target: nodeId,
+          type: "default",
+          animated: false,
+          style: {
+            stroke: "#9ca3af",
+            strokeWidth: 2,
+            strokeDasharray: "5 5",
+          },
+        };
+        console.log(`🔗 Creating edge: ${edge.source} → ${edge.target}`);
+        allEdges.push(edge);
+
+        // If this node is expanded, recursively build its children
+        const childConsequences = expandedNodes.get(nodeId);
+        if (childConsequences && childConsequences.length > 0) {
+          buildTree(nodeId, childConsequences, level + 1, currentY);
+        }
+
+        currentY += nodeHeight + verticalGap;
+      });
+
+      return currentY;
+    }
+
+    // Root node (decision)
     const rootNode: Node = {
       id: "root",
       type: "consequence",
@@ -47,54 +122,164 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
         isRoot: true,
       },
     };
+    allNodes.push(rootNode);
 
-    // Consequence nodes - a la derecha, distribuidos verticalmente
-    const consequenceNodes: Node[] = consequences.map((consequence, index) => ({
-      id: `consequence-${index}`,
-      type: "consequence",
-      position: {
-        x: horizontalGap + nodeWidth,
-        y: startY + index * (nodeHeight + verticalGap),
-      },
-      data: {
-        label: consequence.nombre,
-        probabilidad: consequence.probabilidad,
-        isRoot: false,
-        hasPolymarketData: consequence.relatedMarkets && consequence.relatedMarkets.length > 0,
-      },
-    }));
+    // Build tree starting from root consequences
+    buildTree("root", consequences, 1, 0);
 
-    // Edges connecting root to consequences - líneas curvas punteadas
-    const consequenceEdges: Edge[] = consequences.map((_, index) => ({
-      id: `edge-root-${index}`,
-      source: "root",
-      target: `consequence-${index}`,
-      type: "default",
-      animated: false,
-      style: {
-        stroke: "#9ca3af",
-        strokeWidth: 2,
-        strokeDasharray: "5 5",
-      },
-    }));
+    console.log(`🌲 Tree rebuilt: ${allNodes.length} nodes, ${allEdges.length} edges`);
+    console.log(`📊 Expanded nodes:`, Array.from(expandedNodes.keys()));
+    console.log(`🔗 All edges:`, allEdges.map(e => `${e.source}→${e.target}`).join(", "));
+    console.log(`📍 All node IDs:`, allNodes.map(n => n.id).join(", "));
+
+    // Verify all edges have valid source and target
+    const nodeIds = new Set(allNodes.map(n => n.id));
+    const invalidEdges = allEdges.filter(e => !nodeIds.has(e.source) || !nodeIds.has(e.target));
+    if (invalidEdges.length > 0) {
+      console.error(`❌ Invalid edges found:`, invalidEdges);
+    }
 
     return {
-      nodes: [rootNode, ...consequenceNodes],
-      edges: consequenceEdges,
+      nodes: allNodes,
+      edges: allEdges,
     };
-  }, [decision, consequences]);
+  }, [consequences, expandedNodes, loadingNodes]);
+
+  // Find consequence by nodeId recursively
+  const findConsequenceByNodeId = useCallback(
+    (nodeId: string): Consequence | null => {
+      if (nodeId === "root") return null;
+
+      // Check root level consequences
+      const parts = nodeId.split("-");
+      if (parts.length === 2) {
+        // Format: "consequence-X"
+        const index = parseInt(parts[1]);
+        return consequences[index] || null;
+      }
+
+      // Navigate through expanded nodes
+      let current: Consequence[] = consequences;
+      let parentId = "root";
+
+      for (let i = 1; i < parts.length; i++) {
+        const index = parseInt(parts[i]);
+        const currentNodeId = parts.slice(0, i + 1).join("-");
+
+        if (i === 1) {
+          // First level
+          const cons = current[index];
+          if (!cons) return null;
+          if (currentNodeId === nodeId) return cons;
+
+          const children = expandedNodes.get(currentNodeId);
+          if (!children) return null;
+          current = children;
+        } else {
+          // Deeper levels
+          const cons = current[index];
+          if (!cons) return null;
+          if (currentNodeId === nodeId) return cons;
+
+          const children = expandedNodes.get(currentNodeId);
+          if (!children) return null;
+          current = children;
+        }
+      }
+
+      return null;
+    },
+    [consequences, expandedNodes]
+  );
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       if (node.id === "root") {
         setSelectedConsequence(null);
+        setSelectedNodeId(null);
         return;
       }
 
-      const index = parseInt(node.id.replace("consequence-", ""));
-      setSelectedConsequence(consequences[index] || null);
+      const consequence = findConsequenceByNodeId(node.id);
+      setSelectedConsequence(consequence);
+      setSelectedNodeId(node.id);
     },
-    [consequences]
+    [findConsequenceByNodeId]
+  );
+
+  // Function to expand a consequence node
+  const handleExpandConsequence = useCallback(
+    async (nodeId: string, consequence: Consequence) => {
+      if (!session?.user?.email) {
+        console.error("No user email available");
+        return;
+      }
+
+      // Check if already expanded
+      if (expandedNodes.has(nodeId)) {
+        console.log("Node already expanded");
+        return;
+      }
+
+      // Set loading state
+      setLoadingNodes((prev) => new Set(prev).add(nodeId));
+
+      try {
+        console.log(`🌳 Expanding consequence: "${consequence.nombre}" (nodeId: ${nodeId})`);
+        const childConsequences = await felipeService.expandConsequence(
+          consequence,
+          session.user.email
+        );
+
+        console.log(`✅ Got ${childConsequences.length} child consequences for ${nodeId}`);
+
+        // Collapse siblings and add new expansion atomically
+        const parts = nodeId.split("-");
+        const parentId = parts.slice(0, -1).join("-") || "root";
+
+        setExpandedNodes((prev) => {
+          const newMap = new Map(prev);
+
+          // First, remove all expanded nodes that share the same parent
+          const keysToRemove: string[] = [];
+          newMap.forEach((value, key) => {
+            const keyParts = key.split("-");
+            const keyParent = keyParts.slice(0, -1).join("-") || "root";
+
+            // If this is a sibling (same parent, different node)
+            if (keyParent === parentId && key !== nodeId) {
+              console.log(`🗑️  Removing sibling: ${key}`);
+              keysToRemove.push(key);
+              // Also remove any descendants
+              newMap.forEach((_, descendantKey) => {
+                if (descendantKey.startsWith(key + "-")) {
+                  console.log(`🗑️  Removing descendant: ${descendantKey}`);
+                  keysToRemove.push(descendantKey);
+                }
+              });
+            }
+          });
+
+          keysToRemove.forEach(key => newMap.delete(key));
+
+          // Then add the new expansion
+          newMap.set(nodeId, childConsequences);
+          console.log(`✅ Expanded ${nodeId} with ${childConsequences.length} children`);
+
+          return newMap;
+        });
+      } catch (error) {
+        console.error("Error expanding consequence:", error);
+      } finally {
+        // Remove loading state
+        setLoadingNodes((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(nodeId);
+          return newSet;
+        });
+      }
+    },
+    [session, expandedNodes]
   );
 
   return (
@@ -129,11 +314,18 @@ export default function DecisionTree({ decision, consequences }: DecisionTreePro
       </div>
 
       {/* Detail Panel */}
-      {selectedConsequence && (
+      {selectedConsequence && selectedNodeId && (
         <div className="w-1/3">
           <DetailPanel
             consequence={selectedConsequence}
-            onClose={() => setSelectedConsequence(null)}
+            nodeId={selectedNodeId}
+            isExpanded={expandedNodes.has(selectedNodeId)}
+            isLoading={loadingNodes.has(selectedNodeId)}
+            onClose={() => {
+              setSelectedConsequence(null);
+              setSelectedNodeId(null);
+            }}
+            onExpand={() => handleExpandConsequence(selectedNodeId, selectedConsequence)}
           />
         </div>
       )}

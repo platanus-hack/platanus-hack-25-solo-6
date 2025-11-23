@@ -120,12 +120,20 @@ export class PolymarketService {
     event: PolymarketEvent
   ): PolymarketMarket | null {
     try {
-      // Calculate probability from outcome prices
+      // Calculate probability - prefer lastTradePrice, fallback to outcomePrices
       let probability = 50; // default
-      if (market.outcomePrices && market.outcomePrices.length > 0) {
-        // First outcome price is typically the "Yes" probability
+
+      if (market.lastTradePrice !== undefined && market.lastTradePrice !== null) {
+        // lastTradePrice is already in decimal format (0.0-1.0)
+        probability = Math.round(market.lastTradePrice * 100);
+        console.log(`  📊 Using lastTradePrice: ${market.lastTradePrice} → ${probability}%`);
+      } else if (market.outcomePrices && market.outcomePrices.length > 0) {
+        // First outcome price is typically the "Yes" probability (as string)
         const firstOutcomePrice = parseFloat(market.outcomePrices[0] || "0.5");
         probability = Math.round(firstOutcomePrice * 100);
+        console.log(`  📊 Using outcomePrices[0]: ${market.outcomePrices[0]} → ${probability}%`);
+      } else {
+        console.log(`  ⚠️  No price data, using default: ${probability}%`);
       }
 
       const volumeNum = market.volumeNum ?? parseFloat(market.volume || "0");
@@ -162,10 +170,37 @@ export class PolymarketService {
   /**
    * Filter markets by relevance score
    */
-  filterByRelevance(markets: PolymarketMarket[], minVolume: number = 1000): PolymarketMarket[] {
-    return markets
-      .filter((market) => market.active && market.volume >= minVolume)
-      .slice(0, 30); // Max 30 markets total
+  filterByRelevance(
+    markets: PolymarketMarket[],
+    minVolume: number = 1000,
+    minProbability: number = 5,
+    maxProbability: number = 95
+  ): PolymarketMarket[] {
+    const filtered = markets.filter((market) => {
+      const meetsVolume = market.volume >= minVolume;
+      const meetsActive = market.active;
+      const meetsProbability = market.probability >= minProbability && market.probability <= maxProbability;
+
+      if (!meetsActive) {
+        console.log(`  ❌ Filtered out "${market.question}" - not active`);
+        return false;
+      }
+
+      if (!meetsVolume) {
+        console.log(`  ❌ Filtered out "${market.question}" - low volume ($${market.volume.toFixed(0)})`);
+        return false;
+      }
+
+      if (!meetsProbability) {
+        console.log(`  ❌ Filtered out "${market.question}" - extreme probability (${market.probability}%)`);
+        return false;
+      }
+
+      return true;
+    });
+
+    console.log(`  ✅ Filtered: ${markets.length} → ${filtered.length} markets`);
+    return filtered.slice(0, 30); // Max 30 markets total
   }
 }
 

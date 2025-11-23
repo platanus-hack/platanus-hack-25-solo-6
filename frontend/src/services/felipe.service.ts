@@ -30,6 +30,24 @@ export interface StartDecisionMakingRequest {
 
 export interface StartDecisionMakingResponse {
   consequences: Consequence[];
+  decisionId?: string;
+}
+
+export interface Decision {
+  id: string;
+  userId: string;
+  decision: string;
+  consequences: Consequence[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface GetDecisionsResponse {
+  decisions: Decision[];
+}
+
+export interface GetDecisionByIdResponse {
+  decision: Decision;
 }
 
 /**
@@ -41,7 +59,7 @@ export const felipeService = {
    */
   async startDecisionMaking(
     request: StartDecisionMakingRequest
-  ): Promise<Consequence[]> {
+  ): Promise<{ consequences: Consequence[]; decisionId?: string }> {
     const response = await apiFetch<StartDecisionMakingResponse>(
       "/felipe/start-decision-making",
       {
@@ -51,8 +69,74 @@ export const felipeService = {
     );
 
     // Sort consequences by probability (highest first)
-    return response.consequences.sort(
+    const sortedConsequences = response.consequences.sort(
       (a, b) => b.probabilidad - a.probabilidad
     );
+
+    return {
+      consequences: sortedConsequences,
+      decisionId: response.decisionId,
+    };
+  },
+
+  /**
+   * Get all decisions for the current user
+   */
+  async getDecisions(email: string): Promise<Decision[]> {
+    const response = await apiFetch<GetDecisionsResponse>(
+      `/felipe/decisions?email=${encodeURIComponent(email)}`,
+      {
+        method: "GET",
+      }
+    );
+
+    return response.decisions;
+  },
+
+  /**
+   * Get a specific decision by ID
+   */
+  async getDecisionById(
+    decisionId: string,
+    email: string
+  ): Promise<Decision> {
+    const response = await apiFetch<GetDecisionByIdResponse>(
+      `/felipe/decisions/${decisionId}?email=${encodeURIComponent(email)}`,
+      {
+        method: "GET",
+      }
+    );
+
+    return response.decision;
+  },
+
+  /**
+   * Delete a decision
+   */
+  async deleteDecision(decisionId: string, email: string): Promise<void> {
+    await apiFetch(
+      `/felipe/decisions/${decisionId}?email=${encodeURIComponent(email)}`,
+      {
+        method: "DELETE",
+      }
+    );
+  },
+
+  /**
+   * Expand a consequence (get consequences of a consequence)
+   */
+  async expandConsequence(
+    consequence: Consequence,
+    email: string
+  ): Promise<Consequence[]> {
+    const response = await apiFetch<StartDecisionMakingResponse>(
+      "/felipe/expand-consequence",
+      {
+        method: "POST",
+        body: JSON.stringify({ consequence, email }),
+      }
+    );
+
+    return response.consequences;
   },
 };
