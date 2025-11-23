@@ -36,11 +36,15 @@ function SignInContent() {
       {/* Centered content */}
       <div className="flex flex-col items-center justify-center min-h-screen">
         <h1
-          className="text-4xl font-bold mb-10 text-center text-gray-900"
+          className="text-4xl font-bold mb-4 text-center text-gray-900"
           style={{ fontFamily: "var(--font-space-grotesk), Georgia, serif" }}
         >
           Hola, soy Felipe
         </h1>
+
+        <p className="text-lg text-center text-gray-600 mb-10 max-w-2xl px-4">
+          Soy un asistente que te ayudará a tomar decisiones complejas en futuros simulados combinando LLM y mercados predictivos
+        </p>
 
         <button
           onClick={handleGoogleSignIn}
