@@ -39,9 +39,9 @@ export default function Home() {
         {/* Hero Text */}
         <div className="max-w-4xl">
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-tight mb-8">
-            Explora futuros con
+            Probabilidades reales.
             <br />
-            IA que comprende.
+            Futuros simulados.
           </h1>
         </div>
 
